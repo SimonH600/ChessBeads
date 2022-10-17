@@ -10,3 +10,9 @@ Hans Niemann was accused of cheating both online and in person. Luckily, we have
 ## The Variables in Question
 The various reports on Hans Niemann studied his accuaracy, as it aligned with stockfish, his rating and strength growth, as compared to other players of similar skill, and the center and spread of time usage. All of these are used to identify suspicious behaviour, and are at the root of what chess.com used to close the account of Hans Niemann.
 
+## Summary Statistics
+
+<p align="center">
+  <img src=https://github.com/SimonH600/ChessBeads/blob/910b9b3701d56edafcdc30a0767a11c5ab679b5e/Summary%20Stats%20Chess%20Project.png />
+</p>
+
