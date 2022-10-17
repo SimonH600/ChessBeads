@@ -1,0 +1,157 @@
+---
+title: "Chess Expirement"
+output: html_document
+date: "2022-10-11"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r Libraries message=FALSE}
+library(openxlsx)
+library(chessR)
+library(bigchess)
+library(processx)
+library(stringr)
+library(tidyverse)
+library(vtable)
+```
+
+From 2014 to 2022, Hans Niemann has had 2 chess.com accounts. These were HansOnTwitch and HansCoolNiemann. Both have been closed for violations of the fair play policy. The months 09/2016, 05/2017, and 11/2017 were omitted because chess.com changed the way it was storing chess games in the middle of the month, making it so the chessR package cannot extract the results of these games. We also saw that they changed the way toey stored games from 12/2016 to 01/2017, but because this change happened between the months, all observations could be extracted.
+
+```{r getting-games}
+chess.data.2014_2016 <- get_raw_chessdotcom(usernames = "HansCoolNiemann", year_month = c(201407:201609))
+chess.data.2016 <- get_raw_chessdotcom(usernames = "HansCoolNiemann", year_month = c(201611:201612))
+chess.data.2017.1 <- get_raw_chessdotcom(usernames = "HansCoolNiemann", year_month = c(201701:201704))
+chess.data.2017.2 <- get_raw_chessdotcom(usernames = "HansCoolNiemann", year_month = c(201706:201710))
+chess.data.2017_2020 <- get_raw_chessdotcom(usernames = "HansCoolNiemann", year_month = c(201712:202010))
+chess.data.2020_2022 <- get_raw_chessdotcom(usernames = "HansOnTwitch")
+```
+
+
+
+As the way the data from chess.com games was stored varied over the time period in question, we had to remove some variables in order to condense our dataset.
+
+```{r attaching-datasets}
+chess.data.2017_2020 <- subset(chess.data.2017_2020, select = -Match)
+chess.data.2017_2022 <- rbind(chess.data.2017_2020, chess.data.2020_2022)
+
+chess.data.2017_2022 <- subset(chess.data.2017_2022, select = -Tournament)
+chess.data.2017_2022 <- rbind(chess.data.2017_2022, chess.data.2017.2)
+
+chess.data.2017.1 <- subset(chess.data.2017.1, select = -Tournament)
+chess.data.2017_2022 <- rbind(chess.data.2017_2022, chess.data.2017.1)
+
+chess.data.2016 <- subset(chess.data.2016, select = -Tournament)
+chess.data.2016_2022 <- rbind(chess.data.2017_2022, chess.data.2016)
+
+chess.data.2016_2022 <- subset(chess.data.2016_2022, select = c(-FEN, -Variant, -SetUp))
+chess.data.2014_2016 <- subset(chess.data.2014_2016, select = -Tournament)
+chess.data.2014_2022 <- rbind(chess.data.2014_2016, chess.data.2016_2022)
+
+# Clean out no longer relevant datasets
+rm("chess.data.2014_2016", "chess.data.2016", "chess.data.2017.1", "chess.data.2017.2", "chess.data.2017_2020", "chess.data.2016_2022", "chess.data.2017_2022", "chess.data.2020_2022")
+```
+
+The raw data for the moves included a lot of other information and was not formatted in a way that could be analyzed with the bigchess package. I fixed this. (I put a lot of time into getting my regex right, it was painful)
+
+```{r cleaning-moves}
+
+make.moves <- function(unclean_moves) {
+  more.clean.moves <- str_extract_all(unclean_moves, "\\d+[\\.]{1,3} \\w{1,10}[:alphanum:=+\\s-]\\w{0,2}[\\s]{0,1}")
+  more.clean.moves <- paste(more.clean.moves)
+  more.clean.moves <- gsub("[\n\"c(),]{0,5}", "", more.clean.moves)
+  clean.moves <- gsub(" \\d{1,3}\\.\\.\\.", "", more.clean.moves)
+  return(clean.moves)
+}
+
+
+chess.data.2014_2022 <- mutate(chess.data.2014_2022, clean.moves = make.moves(Moves))
+```
+
+In this section, I connect to my local installation of stockfish. Then, I ran this on every game. It took about 15 hours, so I will not be doing this again.
+
+```{r analyzing-games}
+analyze.20 <- function(game) {
+  analyze_game("C:\\Users\\Simon\\Downloads\\stockfish_15_win_x64_avx2\\stockfish_15_win_x64\\stockfish_15_x64_avx2.exe", san =
+                 game, depth = 20) }
+
+chess.data.2014_2022 <- mutate(chess.data.2014_2022, game.analysis = analyze.20(clean.moves))
+```
+
+Extracting move times. This was challenging. First, I extracted white and black move times. Then I converted them to seconds. Finally, I got relevant statistics, mean and standard deviation. Then I assigned them to variables.
+
+```{r cleaning-time, warning=FALSE}
+extract.black.time <- function(data) {
+  more.clean.time <- str_extract_all(data, "\\d:\\d{2}:\\d{2}[.\\d]{0,2}[]}]{2}[\\s\\d\\.]{0,6}")
+  black.time <- str_extract_all(more.clean.time, "\\d:\\d{2}:\\d{2}[\\.\\d]{0,2}[]}]{2} \\d{1,3}\\. ")
+  black.time.clean <- str_extract_all(black.time, "\\d:\\d{2}:\\d{2}[\\.\\d]{0,2}")
+  return(black.time.clean)
+}
+
+extract.white.time <- function(data) {
+  more.clean.time <- str_extract_all(data, "\\d:\\d{2}:\\d{2}[.\\d]{0,2}[]}]{2}[\\s\\d\\.]{0,6}")
+  white.time <- str_extract_all(more.clean.time, "\\d:\\d{2}:\\d{2}[\\.\\d]{0,2}[]}]{2} \\d{1,3}\\.\\.")
+  white.time.clean <- str_extract_all(white.time, "\\d:\\d{2}:\\d{2}[\\.\\d]{0,2}")
+  return(white.time.clean)
+}
+
+test.game <- chess.data.2014_2022$Moves[1]
+make.this.work <- extract.white.time(test.game)
+
+tester.string <- "0:01:59.5"
+extract.seconds <- function(string) {
+  hours <- as.double(str_extract(string, "\\d"))
+  minutes <- as.double(str_extract(string, "\\d\\d"))
+  seconds <- as.double(gsub(":", "", str_extract_all(string, ":[\\d.]{2,4}")[[1]][2]))
+  total.time.seconds <- (hours * 60 * 60) + (minutes * 60) + seconds
+  return(total.time.seconds)
+}
+
+mean.sd.seconds <- function(data) {
+  seconds.data <- sapply(data[[1]], extract.seconds)
+  time.per.move <- -1 * diff(seconds.data)
+  mean.per.move <- mean(time.per.move)
+  sd.time.per.move <- sd(time.per.move)
+  return(c(mean.per.move, sd.time.per.move))
+}
+
+full.clean.time <- function(game.data) {
+  black.time <- extract.black.time(game.data)
+  white.time <-  extract.white.time(game.data)
+  if (is.na(white.time[[1]][1]) | (str_detect(white.time[[1]][1], "\\d:\\d{2}:\\d{2}[\\.\\d]{0,2}") == FALSE)
+      | is.na(black.time[[1]][1]) | (str_detect(black.time[[1]][1], "\\d:\\d{2}:\\d{2}[\\.\\d]{0,2}") == FALSE)) {
+    return(c(0,0,0,0))
+  } else {
+  stats.black <- mean.sd.seconds(black.time)
+  stats.white <- mean.sd.seconds(white.time)
+  return(c(stats.white, stats.black)) }
+}
+
+chess.data.2014_2022 <- mutate(rowwise(chess.data.2014_2022), time.stats = list(full.clean.time(Moves)))
+
+chess.data.2014_2022 <- mutate(chess.data.2014_2022, white.mean = time.stats[1], white.sd = time.stats[2], black.mean = time.stats[3], black.sd = time.stats[4])
+
+chess.data.2014_2022 <- subset(chess.data.2014_2022, select = -time.stats)
+```
+
+```{r Extracting-Hans-Data}
+chess.data.2014_2022 <- mutate(chess.data.2014_2022, hans.pieces = ifelse((White == "HansCoolNiemann" | White == "HansOnTwitch"), 1, 0))
+chess.data.2014_2022 <- mutate(chess.data.2014_2022, hans.mean.time = ifelse(hans.pieces == 1, white.mean, black.mean), hans.sd.time = ifelse(hans.pieces == 1, white.sd, black.sd), hans.elo = ifelse(hans.pieces == 1, WhiteElo, BlackElo))
+head(chess.data.2014_2022)
+```
+
+```{r Summary-Stats}
+chess.data.2014_2022 <- mutate(chess.data.2014_2022, hans.elo.int = as.double(hans.elo))
+st(chess.data.2014_2022, vars = c("hans.mean.time", "hans.sd.time", "hans.elo.int", "game.analysis"))
+
+write.xlsx(chess.data.2014_2022, file = "chess_data.xlsx")
+```
+
+Remaining data cleaning:
+1. Drop unneccesary variables
+2. Drop games where time is 0 (only one move was played)
+3. Filter openings and end-games out of analysis
