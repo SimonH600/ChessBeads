@@ -16,3 +16,22 @@ The various reports on Hans Niemann studied his accuaracy, as it aligned with st
   <img src=https://github.com/SimonH600/ChessBeads/blob/910b9b3701d56edafcdc30a0767a11c5ab679b5e/Summary%20Stats%20Chess%20Project.png />
 </p>
 
+
+## What We Will Study
+This study will aim to answer the following questions:
+    1. Was Hans Niemann's Improvement Irregular?
+    2. Did Hans Niemann Play Irregularly?
+    3. Can we provide statistical evidence that Hans Niemann cheated?
+    
+## How we will complete our study
+
+### Did Hans Niemann Improve Irregularly?
+Testing whether Hans Niemann's ratings improved irregularly is quite easy. Chess.com compiled graphics and numerical benchmarks comparing Hans Niemann to the greatest chess players of all time. These included everyone from Vishi Anand to Bobby Fischer to Alireza Firouzja. By looking at rating plotted against time, we can see a clear pattern. We see that fitting a logarithmic graph to ratings works for nearly all high level players who started while they were 
+
+### Did Hans Niemann Play Irregularly?
+There are 2 key factors to irregular play: Accuaracy and Time Management. Engines take time to process positions, a time that tends to be constant. Thus, low variance combined with high accuaracy is a strong indicator in play patterns. 
+
+The other important factor is whether Hans Niemann matained a consistent level of play. We don't expect for Chess Players to swing between 70% accuaracy and 90% accuaracy from session to session. These wild variations in ratings are key indicators of irregular play.
+
+### Can we provide statistical evidence that Hans Niemann cheated?
+To demonstrate Hans Niemann cheated, we must demonstrate that he played at a much higher level than he is actually capable of. The previous two questions have laid the groundwork for this. If we can show that Hans Niemann has grown at an impossible rate, and that his play patterns align closely with an engine, then we have some evidence that Hans Niemann cheated.
